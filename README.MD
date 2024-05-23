@@ -430,3 +430,159 @@ public RequestInterceptor userInfoRequestInterceptor(){
     };
 }
 ```
+
+## Sentinel
+
+### 请求限流
+在簇点链路后面点击流控按钮，即可对其做限流配置：
+<img src="./image/请求限流.png" width="300" /><br>
+在弹出的菜单中这样填写：<br>
+<img src="./image/流控规则.png" width="300" /><br>
+这样就把查询购物车列表这个簇点资源的流量限制在了每秒6个，也就是最大QPS为6。<br>
+
+### 线程隔离
+查询购物车的时候需要查询商品，为了避免因商品服务出现故障导致购物车服务级联失败，
+我们可以把购物车业务中查询商品的部分隔离起来，限制可用的线程资源：<br>
+<img src="./image/线程隔离.png" width="300" /><br>
+
+#### OpenFeign整合Sentinel
+```yaml
+feign:
+  sentinel:
+    enabled: true # 开启feign对sentinel的支持
+```
+点击查询商品的FeignClient对应的簇点资源后面的流控按钮：<br>
+<img src="./image/线程隔离1.png" width="300" /><br>
+<img src="./image/线程隔离2.png" width="300" /><br>
+注意，这里勾选的是并发线程数限制，也就是说这个查询功能最多使用5个线程，而不是5QPS。
+如果查询商品的接口每秒处理2个请求，则5个线程的实际QPS在10左右，而超出的请求自然会被拒绝。<br>
+<img src="./image/线程隔离3.png" width="300" /><br>
+
+
+## Seata-分布式事务、
+在Seata的事务管理中有三个重要的角色：<br>
+-  TC (Transaction Coordinator) - 事务协调者：维护全局和分支事务的状态，协调全局事务提交或回滚。
+-  TM (Transaction Manager) - 事务管理器：定义全局事务的范围、开始全局事务、提交或回滚全局事务。
+-  RM (Resource Manager) - 资源管理器：管理分支事务，与TC交谈以注册分支事务和报告分支事务的状态，并驱动分支事务提交或回滚。
+
+<img src="./image/seata1.png" width="300" /><br>
+
+Seata支持四种不同的分布式事务解决方案：
+- XA
+- TCC
+- AT
+- SAGA
+
+#### Seata的XA模型
+Seata对原始的XA模式做了简单的封装和改造，以适应自己的事务模型，基本架构如图：<br>
+<img src="./image/seata2.png" width="300" /><br>
+RM一阶段的工作：
+1. 注册分支事务到TC
+2. 执行分支业务sql但不提交
+3. 报告执行状态到TC
+
+TC二阶段的工作：
+1.  TC检测各分支事务执行状态
+1. 如果都成功，通知所有RM提交事务
+2. 如果有失败，通知所有RM回滚事务
+
+RM二阶段的工作：
+- 接收TC指令，提交或回滚事务
+
+#### Seata的AT模型
+AT模式同样是分阶段提交的事务模型，不过缺弥补了XA模型中资源锁定周期过长的缺陷。<br>
+<img src="./image/seata3.png" width="300" /><br>
+阶段一RM的工作：
+- 注册分支事务
+- 记录undo-log（数据快照）
+- 执行业务sql并提交
+- 报告事务状态
+  阶段二提交时RM的工作：
+- 删除undo-log即可
+  阶段二回滚时RM的工作：
+- 根据undo-log恢复数据到更新前
+
+#### AT与XA的区别
+
+简述AT模式与XA模式最大的区别是什么？
+- XA模式一阶段不提交事务，锁定资源；AT模式一阶段直接提交，不锁定资源。
+- XA模式依赖数据库机制实现回滚；AT模式利用数据快照实现数据回滚。
+- XA模式强一致；AT模式最终一致
+
+可见，AT模式使用起来更加简单，无业务侵入，性能更好。因此企业90%的分布式事务都可以用AT模式来解决。<br>
+
+
+
+
+## RabbitMQ--异步调用
+RabbitMQ对应的架构如图：<br>
+<img src="./image/rabbitmq.png" width="300" /><br>
+其中包含几个概念：
+- publisher：生产者，也就是发送消息的一方
+- consumer：消费者，也就是消费消息的一方
+- queue：队列，存储消息。生产者投递的消息会暂存在消息队列中，等待消费者处理
+- exchange：交换机，负责消息路由。生产者发送的消息由交换机决定投递到哪个队列。
+- virtual host：虚拟主机，起到数据隔离的作用。每个虚拟主机相互独立，有各自的exchange、queue
+
+### SpringAMQP
+由于RabbitMQ采用了AMQP协议，因此它具备跨语言的特性。
+任何语言只要遵循AMQP协议收发消息，都可以与RabbitMQ交互。
+并且RabbitMQ官方也提供了各种不同语言的客户端。
+但是，RabbitMQ官方提供的Java客户端编码相对复杂，
+一般生产环境下我们更多会结合Spring来使用。
+而Spring的官方刚好基于RabbitMQ提供了这样一套消息收发的模板工具：
+SpringAMQP。并且还基于SpringBoot对其实现了自动装配，使用起来非常方便。<br>
+消息发送：<br>
+```java
+@SpringBootTest
+public class SpringAmqpTest {
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
+    @Test
+    public void testSimpleQueue() {
+        // 队列名称
+        String queueName = "simple.queue";
+        // 消息
+        String message = "hello, spring amqp!";
+        // 发送消息
+        rabbitTemplate.convertAndSend(queueName, message);
+    }
+}
+```
+消息接受：<br>
+```java
+@Component
+public class SpringRabbitListener {
+  // 利用RabbitListener来声明要监听的队列信息
+  // 将来一旦监听的队列中有了消息，就会推送给当前服务，调用当前方法，处理消息。
+  // 可以看到方法体中接收的就是消息体的内容
+  @RabbitListener(queues = "simple.queue")
+  public void listenSimpleQueueMessage(String msg) throws InterruptedException {
+    System.out.println("spring 消费者接收到消息：【" + msg + "】");
+  }
+}
+```
+
+
+## Elasticsearch
+elasticsearch是一款非常强大的开源搜索引擎，支持的功能非常多。
+
+### 倒排索引
+倒排索引中有两个非常重要的概念：
+- 文档（Document）：用来搜索的数据，其中的每一条数据就是一个文档。例如一个网页、一个商品信息
+- 词条（Term）：对文档数据或用户搜索数据，利用某种算法分词，得到的具备含义的词语就是词条。例如：我是中国人，就可以分为：我、是、中国人、中国、国人这样的几个词条
+
+创建倒排索引是对正向索引的一种特殊处理和应用，流程如下：
+- 将每一个文档的数据利用分词算法根据语义拆分，得到一个个词条
+- 创建表，每行数据包括词条、词条所在文档id、位置等信息
+- 因为词条唯一性，可以给词条创建正向索引
+
+倒排索引的搜索流程如下（以搜索"华为手机"为例），如图：<br>
+<img src="./image/倒排索引.png" width="300" /><br>
+流程描述：<br>
+1）用户输入条件"华为手机"进行搜索。<br>
+2）对用户输入条件分词，得到词条：华为、手机。<br>
+3）拿着词条在倒排索引中查找（由于词条有索引，查询效率很高），即可得到包含词条的文档id：1、2、3。<br>
+4）拿着文档id到正向索引中查找具体文档即可（由于id也有索引，查询效率也很高）。<br>
