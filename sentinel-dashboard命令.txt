@@ -1,1 +1,2 @@
+在sentinel-dashboard.jar目录下输入cmd，然后输入以下命令:
 java -Dserver.port=8090 -Dcsp.sentinel.dashboard.server=localhost:8090 -Dproject.name=sentinel-dashboard -jar sentinel-dashboard.jar
