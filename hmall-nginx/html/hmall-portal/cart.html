@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=9; IE=8; IE=7; IE=EDGE">
+  <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+  <title>黑马商城--购物车页面</title>
+
+  <link rel="stylesheet" type="text/css" href="css/webbase.css" />
+  <link rel="stylesheet" type="text/css" href="css/pages-cart.css" />
+</head>
+
+<body>
+
+  <div id="cartApp">
+    <!--head-->
+    <top></top>
+    <div class="cart py-container">
+      <!--All goods-->
+      <div class="allgoods">
+        <div class="logoArea">
+          <a href="/">
+            <div class="logo">
+              <img src="./img/logo.png" alt="1" />
+            </div>
+          </a>
+          <span>购物车商品 </span>
+        </div>
+        <div class="cart-main">
+          <div class="yui3-g cart-th">
+            <div class="yui3-u-1-4"><input type="checkbox" v-model="selectAll" /> 全部</div>
+            <div class="yui3-u-1-4">商品</div>
+            <div class="yui3-u-1-8">单价（元）</div>
+            <div class="yui3-u-1-8">&nbsp;&nbsp;数量</div>
+            <div class="yui3-u-1-8">小计（元）</div>
+            <div class="yui3-u-1-12">操作</div>
+          </div>
+          <div class="cart-item-list">
+
+            <div class="cart-body">
+              <div class="cart-list">
+                <ul class="goods-list yui3-g" v-for="(c,i) in carts" :key="c.id">
+                  <li class="yui3-u-1-24">
+                    <input type="checkbox" name="" v-model="selectedCarts" :value="c" :disabled="c.status!==1 || c.stock <= c.num" />
+                  </li>
+                  <li class="yui3-u-11-24">
+                    <div class="good-item">
+                      <div class="item-img"><a href="#" target="_blank">
+                          <img :src="c.image" width="80px" height="80px" /></a>
+                      </div>
+                      <div class="item-msg">
+                        <span>
+                          <p v-text="c.name" style="overflow: hidden"></p>
+                          <span v-for="(v,k) in  JSON.parse(c.spec)" :key="k">
+                            <a href="#" @click.prevent="">{{v}}</a> |
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </li>
+
+                  <li class="yui3-u-1-8">
+                    <span style="line-height:70px " class="price"
+                      v-text="util.formatPrice(c.newPrice || c.price)"></span><br />
+                    <span v-if="c.newPrice && c.newPrice < c.price" style="color: #bf360c;"
+                      v-text="'比加入时便宜：￥' + util.formatPrice(c.price - c.newPrice)"></span>
+                  </li>
+                  <li class="yui3-u-1-8" style="padding-top: 20px">
+                    <a href="javascript:void(0)" class="increment mins" @click="decrement(c)">-</a>
+                    <input autocomplete="off" :disabled="c.num > c.stock" type="text" v-model="c.num"
+                      @blur="watchNum(c)" minnum="1" class="itxt" />
+                    <a href="javascript:void(0)" class="increment plus" @click="increment(c)">+</a>
+                  </li>
+                  <li class="yui3-u-1-8"><span style="line-height:70px " class="sum"
+                      v-text="util.formatPrice((c.newPrice || c.price) * c.num)"></span></li>
+                  <li class="yui3-u-1-12">
+                    <a href="#" @click.prevent="deleteCart(i)">删除</a><br />
+                    <a href="#none">移到我的关注</a><br />
+                    <span v-show="c.status !== 1" style="color: red;">商品已经下架</span>
+                    <span v-show="c.num > c.stock" style="color: red;">商品库存不足</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="cart-tool">
+          <div class="select-all">
+            <input type="checkbox" v-model="selectAll" />
+            <span>全选</span>
+          </div>
+          <div class="option">
+            <a href="#none">删除选中的商品</a>
+            <a href="#none">移到我的关注</a>
+            <a href="#none">清除下架商品</a>
+          </div>
+          <div class="toolbar">
+            <div class="chosed">已选择<span v-text="selectedCarts.length"></span>件商品</div>
+            <div class="sumprice">
+              <span><em>总价（不含运费） ：</em><i class="summoney" v-text="util.formatPrice(totalPrice)"></i></span>
+              <span><em>已节省：</em><i>-¥20.00</i></span>
+            </div>
+            <div class="sumbtn">
+              <a class="sum-btn" href="#" @click.prevent="toOrderInfo" target="_blank">结算</a>
+            </div>
+          </div>
+        </div>
+        <div class="clearfix"></div>
+        <div class="deled">
+          <span>已删除商品，您可以重新购买或加关注：</span>
+          <div class="cart-list del">
+            <ul class="goods-list yui3-g">
+              <li class="yui3-u-1-2">
+                <div class="good-item">
+                  <div class="item-msg">Apple Macbook Air 13.3英寸笔记本电脑 银色（Corei5）处理器/8GB内存</div>
+                </div>
+              </li>
+              <li class="yui3-u-1-6"><span class="price">8848.00</span></li>
+              <li class="yui3-u-1-6">
+                <span class="number">1</span>
+              </li>
+              <li class="yui3-u-1-8">
+                <a href="#none">重新购买</a>
+                <a href="#none">移到我的关注</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <script src="./js/vue.js"></script>
+  <script src="./js/axios.min.js"></script>
+  <script src="./js/common.js"></script>
+  <script src="./js/top.js"></script>
+  <script type="text/javascript">
+    const cartVm = new Vue({
+      el: "#cartApp",
+      data: {
+        util,
+        carts: [],
+        user: null,
+        selectedCarts: [],
+        enableCarts: [],
+        selectAll: true
+      },
+      async created() {
+        util.store.set("return-url", location.href);
+        this.user = util.store.get("user-info")
+        if (!util.isLogin()) {
+          // 未登录直接跳转到登录页面
+          location.href = "login.html"
+        }
+        // 加载购物车
+        this.loadCarts();
+      },
+      methods: {
+        loadCarts() {
+          // 查询购物车
+          this.handleLoginCarts();
+        },
+        handleLoginCarts() {
+          // 已登录
+          axios.get("/carts").then(resp => {
+            if (!resp || resp.length <= 0) {
+              this.carts = [];
+              // 提示
+              alert("你的购物车是空的，赶紧去买点东西吧！");
+              window.location.href = "/search.html";
+            } else {
+              this.carts = resp;
+              this.refreshSelectedCarts();
+            }
+          }).catch(e => {
+            console.log(e);
+            // 提示
+            alert("查询购物车数据失败");
+          })
+        },
+        increment(c) {
+          if (c.num >= c.stock) {
+            alert("超出库存上限");
+            return;
+          }
+          axios.put("/carts", {
+            id: c.id,
+            num: c.num + 1
+          }).then(() => {
+            this.handleLoginCarts();
+          }).catch(() => {
+            alert("服务器忙");
+          })
+        },
+        decrement(c) {
+          if (c.num <= 1) return;
+          // 已登录
+          axios.put("/carts", {
+            id: c.id,
+            num: c.num - 1
+          }).then(() => this.handleLoginCarts())
+            .catch(() => {
+              alert("服务器忙");
+            })
+        },
+        deleteCart(i) {
+          const id = this.carts[i].id;
+          // 已登录
+          axios.delete("/carts/" + id)
+            .then(() => this.handleLoginCarts())
+            .catch(() => {
+              alert("服务器忙");
+            });
+        },
+        toOrderInfo() {
+          // 把已选中的购物车商品保存到localStorage
+          if (!this.selectedCarts || this.selectedCarts.length < 1) {
+            alert("至少要选中一件商品！");
+            return;
+          }
+          util.store.set("selectedCarts", this.selectedCarts);
+          window.location.href = "/order-confirm.html"
+        },
+        watchNum(c) {
+          if (c.num > c.stock) {
+            c.num = c.stock;
+            alert("超出库存上限");
+          }
+        },
+        refreshSelectedCarts() {
+          this.selectedCarts = this.carts.filter(c => c.status === 1 && c.stock >= c.num);
+          this.enableCarts = this.selectedCarts;
+        }
+      },
+      watch: {
+        selectAll(val, oldVal) {
+          if (val) {
+            this.selectedCarts = this.enableCarts;
+          } else if (this.selectedCarts.length === this.enableCarts.length) {
+            this.selectedCarts = [];
+          }
+        },
+        selectedCarts: {
+          deep: true,
+          handler(val) {
+            if (val.length === this.enableCarts.length && !this.selectAll) this.selectAll = true;
+            if (val.length !== this.enableCarts.length && this.selectAll) this.selectAll = false;
+          }
+        }
+      },
+      computed: {
+        totalPrice() {
+          return this.selectedCarts.map(c => c.num * (c.newPrice || c.price)).reduce((v1, v2) => v1 + v2, 0);
+        }
+      }
+    })
+  </script>
+
+</body>
+
+</html>

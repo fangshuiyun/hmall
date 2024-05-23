@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>河马商城管理后台</title>
+  <link href="./css/main.css" rel="stylesheet">
+  <!-- 引入样式 -->
+  <link rel="stylesheet" href="./css/element.css">
+  <link rel="stylesheet" href="./css/index.css">
+
+
+</head>
+<body>
+<div id="app">
+    <menu-list class="menus"></menu-list>
+    <div class="blocks" >
+      <banner></banner>
+      <div id="container">
+        <router-view v-if="util.isRouteAlive"/>
+      </div>
+    </div>
+</div>
+<script src="./js/vue.js"></script>
+<script src="./js/axios.min.js"></script>
+<script src="./js/common.js"></script>
+<script src="./js/echarts.js"></script>
+<!-- 引入组件库 -->
+<script src="./js/element.js"></script>
+<script src="./js/view-router.js"></script>
+<script src="./js/pages/menu.js"></script>
+<script src="./js/pages/banner.js"></script>
+<script src="./js/pages/index.js"></script>
+<script src="./js/pages/goods/category.js"></script>
+<script src="./js/pages/goods/list.js"></script>
+<script src="./js/pages/auth/menu.js"></script>
+<script src="./js/pages/auth/role.js"></script>
+<script src="./js/pages/auth/user.js"></script>
+<script src="./js/pages/class/student.js"></script>
+
+<script>
+  Vue.use(ViewRouter);
+  const router = new ViewRouter({
+    // 添加路由关系
+    routes:[
+      { path:"/", component: Index},
+      { path:"/index", component: Index},
+      { path:"/goods/category", component: GoodsCategory},
+      { path:"/goods/list", component: GoodsList},
+      { path:"/auth/menu", component: AuthMenu},
+      { path:"/auth/role", component: AuthRole},
+      { path:"/auth/user", component: AuthUser},
+      { path:"/class/student", component: ClassStudent},
+    ]
+  })
+  const app = new Vue({
+    router,
+    el: "#app",
+    data:{
+      util
+    }
+  })
+</script>
+</body>
+</html>

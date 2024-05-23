@@ -1,0 +1,17 @@
+
+.num {
+    line-height: 20px;
+    width: 60px;
+    text-align: right;
+}
+.num span {
+    font-size: 18px;
+    line-height: 20px;
+    width: 20px;
+}
+.num-btn {
+    font-size: 16px;
+    line-height: 20px;
+    width: 30px;
+    text-align: center;
+}

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>黑马商城</title>
+  <link rel="stylesheet" type="text/css" href="./css/webbase.css" />
+  <link rel="stylesheet" href="./css/index.css"/>
+  <link rel="stylesheet" href="./css/banner.css"/>
+</head>
+
+<body>
+<div id="app" >
+<!--head-->
+<top></top>
+<div class="content" @click="showOps=false">
+  <div style="width: 1210px;text-align: center;margin: auto;">
+    <div class="banner">
+      <a href="/">
+        <div class="logo">
+          <img src="./img/logo.png" alt="1"/>
+        </div>
+      </a>
+      <el-switch
+          v-model="isTest"
+          active-text="启用测试"
+          inactive-text="停用测试">
+      </el-switch>
+    </div>
+    <!--关键字搜索-->
+    <div class="search-bar">
+      <div class="search-box">
+        <input title="输入关键字搜索商品" v-model="params.key" type="text" @click.stop="" @focus="showOps=true"
+               @keyup="handleKeyUp($event)">
+        <button @click="handleSearch">搜索</button>
+      </div>
+      <div id="complete-box" v-show="showOps && ops.length > 0">
+        <div v-for="(item, i) in ops" :key="i" @click="handleSearch" @mouseover="opsIndex = i"
+             :style='{"background-color": opsIndex===i ? "#EEE" : "#fff"}'>{{item}}
+        </div>
+      </div>
+    </div>
+    <!-- 已选择过滤项 -->
+    <div class="selected-ops">
+      <div class="open">全部结果：</div>
+      <div class="selected-op" v-for="(v, k) in params.filters" :key="k" @click="deleteFilter(k)">
+        {{filterNames[k]}}：<span>{{v.label || v}} <span class='close'>×</span></span>
+      </div>
+    </div>
+    <!--过滤项-->
+    <div class="filter-list">
+      <div v-for="(v, k) in remainFilter" :key="k">
+        <div class="filter-box">
+          <div class="f-key"><strong>{{filterNames[k]}}</strong></div>
+          <div class="column-divider"></div>
+          <div class="filter-items">
+            <div class="filter-item" @click="clickFilter(k, o)" v-for="(o, j) in v" :key="j"><a href="javascript:void(0)">
+              {{o}}</a></div>
+          </div>
+        </div>
+        <div class="row-divider"></div>
+      </div>
+      <div class="filter-box">
+        <div class="f-key"><strong>价格</strong></div>
+        <div class="column-divider"></div>
+        <div class="filter-items">
+          <div class="filter-item" v-for="(p,j) in prices" :key="j" @click="clickFilter('price',p)">
+            <a href="javascript:void(0)">{{p.label}}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 排序 -->
+    <div class="top-ban">
+      <!--排序条件-->
+      <div class="sort-items">
+        <div class="sort-item" v-for="(item, i) in sortItems" :key="i">
+          <a :class="{selected: selectedSortItem===i}" @click.prevent="handleSort(i)"
+             href="javascript:void(0)">{{item.text}}</a>
+             <span v-if="item.key">
+              <span v-show="!item.desc">△</span>
+              <span v-show="item.desc">▽</span>
+             </span>
+          |
+        </div>
+      </div>
+
+      <!--分页条-->
+      <div class="top-pagination">
+        <span>共 <i style="color: #222;">{{total}}</i> 件商品</span>
+        <span><i style="color: red;">{{params.pageNo}}</i>/{{totalPage}}</span>
+        <a class="btn-arrow" href="#" style="display: inline-block" @click="prePage">&lt;</a>
+        <a class="btn-arrow" href="#" style="display: inline-block" @click="nextPage">&gt;</a>
+      </div>
+    </div>
+    <div class="row-divider" style="margin-bottom: 5px; width: 100%"></div>
+    <!--商品列表-->
+    <div class="item-list">
+      <div class="item-box" v-for="item in items">
+        <div class="ad-mark" v-if="item.isAD">
+          <img src="./img/ad.png" width="25"/>
+        </div>
+        <img :src="item.image" alt="item.name" width="100%"/>
+        <div>
+          <span style="color: #e4393c; font-weight: bold; font-pageSize: 16px">￥</span>
+          <span class="item-price" v-text="util.formatPrice(item.price)"></span>
+        </div>
+        <div class="item-name" v-html="item.name"></div>
+        <div >
+          <span class="item-comment" v-text="comment(item.commentCount)"></span> <span class="item-gray">条评价</span>
+        </div>
+        <div >
+          <span class="item-gray">最近1个月销量 :</span> <span class="item-sold" v-text="comment(item.sold)"></span>
+        </div>
+        <div class="buy-btn-box">
+          <div class="buy-btn" @click="toOrderConfirm(item.id)">
+            <span >立刻购买</span>
+          </div>
+          <div class="buy-btn" @click="add2Cart(item)">
+            <span >加入购物车</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<script src="./js/vue.js"></script>
+<script src="./js/axios.min.js"></script>
+<script src="js/common.js"></script>
+<script src="js/top.js"></script>
+
+<script>
+
+  let app = new Vue({
+    el: "#app",
+    data: {
+      isTest: true,
+      filterNames: {
+        category: "分类",
+        brand: "品牌",
+        price: "价格",
+      },
+      prices:[
+        {value: '0-100', label: '100以下'},
+        {value: '100-299', label: '100~299元'},
+        {value: '300-599', label: '300~599元'},
+        {value: '600-899', label: '600~899元'},
+        {value: '900-1599', label: '900~1599元'},
+        {value: '1600-0', label: '1600以上元'},
+      ], // 价格过滤范围
+      filterList: {},// 过滤项的假数据
+      selectedSortItem: 0, // 选中的排序项
+      sortItems: [
+        { key: "", text: "默认",desc: true},
+        { key: "sold", text: "销量", desc: true},
+        { key: "price", text: "价格",desc: true}
+      ],// 排序字段的假数据
+      items: [],// 酒店数据
+      total: 0, // 总条数
+      totalPage: 0, // 总页数
+      params: {
+        key: "", // 搜索关键字
+        pageNo: 1, // 当前页码
+        pageSize: 20, // 每页大小
+        sortBy: "",// 排序字段
+        isAsc: true,
+        filters: {}, // 过滤字段
+      },
+      currentHotel: {},
+      ops: [],
+      showOps: false,
+      opsIndex: -1,
+      testFilterData: { // 测试过滤项
+        "category": ["手机", "曲面电视", "拉杆箱", "休闲鞋", "硬盘", "真皮包"],
+        "brand": ["希捷", "小米", "华为", "oppo", "尤妮佳", "莎米特", "意尔康", "新秀丽", "Apple","锤子"]
+      },
+      testItems: [  // 测试商品数据
+        { "id": 100000003145, "name": "vivo X23 8GB+128GB 幻夜蓝 水滴屏全面屏 <em>游戏手机</em>移动联通电信全网通4G手机", "price": 95900, "num": 10000, "image": "https://m.360buyimg.com/mobilecms/s720x720_jfs/t1/4612/28/6223/298257/5ba22d66Ef665222f/d97ed0b25cbe8c6e.jpg!q70.jpg.webp", "category": "手机", "brand": "vivo", "sold": 11212, "commentCount": 1231312, "isAD": true}, {"id": 100000004580, "name": "薇妮(viney)女士单肩包 时尚牛皮女包百搭斜挎包女士手提大包(经典黑)", "price": 87900, "num": 10000, "image": "https://m.360buyimg.com/mobilecms/s720x720_jfs/t5590/64/5811657380/234462/5398e856/5965e173N34179777.jpg!q70.jpg.webp", "category": "真皮包", "brand": "viney", "spec": "{\"颜色\": \"黑色\"}", "sold": 22233, "commentCount": 2223232, "isAD": false}, {"id": 100000006163, "name": "巴布豆(BOBDOG)柔薄悦动婴儿拉拉裤XXL码80片(15kg以上)", "price": 67100, "num": 10000, "image": "https://m.360buyimg.com/mobilecms/s720x720_jfs/t23998/350/2363990466/222391/a6e9581d/5b7cba5bN0c18fb4f.jpg!q70.jpg.webp", "category": "拉拉裤", "brand": "巴布豆", "spec": "{}", "sold": 11, "commentCount": 33343434, "isAD": false}, {"id": 100000011113, "name": "莎米特SUMMIT拉杆箱22英寸PC材质万向轮旅行箱行李箱PC154T4A可扩容 法拉利红", "price": 78900, "num": 10000, "image": "https://m.360buyimg.com/mobilecms/s720x720_jfs/t1/25363/12/2929/274060/5c21df3aE1789bda7/030af31afd116ae0.jpg!q70.jpg.webp", "category": "拉杆箱", "brand": "莎米特", "spec": "{\"颜色\": \"红色\"}", "sold": 435, "commentCount": 334434, "isAD": false}, {"id": 100000011127, "name": "莎米特SUMMIT拉杆箱22英寸PC材质万向轮旅行箱行李箱PC154T4A可扩容 米白", "price": 26600, "num": 10000, "image": "https://m.360buyimg.com/mobilecms/s720x720_jfs/t1/25363/12/2929/274060/5c21df3aE1789bda7/030af31afd116ae0.jpg!q70.jpg.webp", "category": "拉杆箱", "brand": "莎米特", "spec": "{\"颜色\": \"米色\"}", "sold": 45454, "commentCount": 233324, "isAD": false}
+      ],
+      util,
+      user: 0,
+    },
+    watch: {
+      "params.sortBy"() {
+        // 每当page改变，当前代码就会执行。搜索一下
+        this.search();
+      },
+      "params.pageNo"() {
+        // 每当page改变，当前代码就会执行。搜索一下
+        this.search();
+      },
+      "params.filters": {
+        deep: true,
+        handler() {
+          this.search();
+          // 获取过滤项
+          this.getFilter();
+        }
+      },
+      opsIndex() {
+        if (this.opsIndex !== -1) {
+          this.params.key = this.ops[this.opsIndex]
+        }
+      }
+    },
+    created() {
+      util.store.set("return-url", location.href);
+      this.user = util.store.get("user-info")
+      let key = util.getUrlParam("key");
+      if(key !== "null"){
+        this.params.key = key
+      }
+      // 页面加载时，先搜索一下
+      this.search();
+      // 获取过滤项
+      this.getFilter();
+    },
+    methods: {
+      handleSort(i){
+        if(i === this.selectedSortItem){
+          // 重复点击同一个排序项，则改变排序方式
+          this.sortItems[i].desc = !this.sortItems[i].desc;
+        }else{
+          // 不同的排序项，改变排序字段
+          this.selectedSortItem = i;
+        }
+        this.search();
+      },
+      handleKeyUp(e) {
+        if (e.keyCode === 13) {
+          // 用户按回车，需要搜索
+          this.search();
+          this.getFilter();
+        }
+        /*if ((e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 65 && e.keyCode <= 90) || e.keyCode === 8) {
+          // 用户输入的字符，需要自动补全
+          this.getSuggestion();
+        } else if (e.keyCode === 13) {
+          // 用户按回车，需要搜索
+          this.search();
+          this.getFilter();
+        } else if (e.keyCode === 38) {
+          if (this.opsIndex > 0) {
+            this.opsIndex--;
+          } else {
+            this.opsIndex = this.ops.length - 1;
+          }
+        } else if (e.keyCode === 40) {
+          this.opsIndex = (this.opsIndex + 1) % this.ops.length;
+        } else if (e.keyCode === 27) {
+          this.show = false
+        }*/
+      },
+      handleSearch(){
+        this.search();
+        this.getFilter();
+      },
+      getSuggestion() { // 查询自动补全
+        if (!this.params.key) {
+          // key没有值，不去搜索了
+          this.ops = [];
+          return;
+        }
+        axios.get("/search/suggestion?key=" + this.params.key)
+          .then(resp => {
+            this.ops = resp;
+          })
+          .catch(e => {
+            if(this.isTest){
+              this.ops = ["oppo", "小米", "华为"]
+            }else{
+              this.ops = []
+            }
+            console.log(e);
+          })
+      },
+      getParams(){
+        // 准备参数
+        const {filters: {price: ps, ... fs}, ...params} = this.params;
+        for( _k in fs){
+          params[_k] = fs[_k];
+        }
+        // 处理价格
+        if(ps){
+          let pArr = ps.value.split("-");
+          params.minPrice = parseInt(pArr[0]) * 100;
+          let max = parseInt(pArr[1]) * 100;
+          params.maxPrice = max === 0 ? 999999 : max;
+        }
+        let sortItem = this.sortItems[this.selectedSortItem];
+        params.isAsc =  !sortItem.desc;
+        params.sortBy = sortItem.key;
+        return params;
+      },
+      getFilter() {
+        if(this.isTest){
+          this.filterList = this.testFilterData;
+          return;
+        }
+        axios.post("/search/filters", this.getParams())
+          .then(resp => {
+            this.filterList = resp;
+          })
+          .catch(err => {
+            console.log(err);
+            this.filterList = this.testFilterData;
+          })
+      },
+      search() {
+        // 发送ajax
+        axios.get("/search/list", {params:this.getParams()})
+          .then(resp => {
+            this.items = resp.list;
+            this.total = resp.total;
+            this.totalPage = Math.floor((this.total + this.params.pageSize - 1) / this.params.pageSize);
+          })
+          .catch(err => {
+            console.log(err)
+            this.items = this.testItems;
+            this.total = 1294;
+            this.totalPage = Math.floor((this.total + this.params.pageSize - 1) / this.params.pageSize);
+          })
+
+      },
+      prePage() {
+        if (this.params.pageNo > 1) {
+          this.params.pageNo--
+        }
+      },
+      nextPage() {
+        if (this.params.pageNo < this.totalPage) {
+          this.params.pageNo++
+        }
+      },
+      clickPrice(min, max) {
+        this.params.minPrice = min;
+        this.params.maxPrice = max;
+      },
+      clickFilter(key, option) {
+        const {...obj} = this.params.filters;
+        obj[key] = option;
+        this.params.filters = obj;
+      },
+      deleteFilter(k) {
+        const {...obj} = this.params.filters;
+        delete obj[k];
+        this.params.filters = obj;
+      },
+      comment(count){
+        if(count < 10000){
+          return count;
+        }else{
+          return Math.floor(count / 10000) + "万+";
+        }
+      },
+      toOrderConfirm(id) {
+        location.href = "/order-confirm.html?id=" + id
+      },
+      add2Cart(item) {
+        let { id, ... param} = item;
+        param.itemId = id;
+        param.num = 1;
+        if(!util.isLogin()){
+          // 未登录，跳转去登录页
+          location.href = "/login.html"
+        }
+        // 已登录
+        axios.post("/carts", param)
+          .then(resp => {
+            location.href = "/cart.html"
+          })
+          .catch(err => {
+            console.log(err.response.data);
+            alert(err.response.data.msg || "添加购物车失败")
+          })
+
+      }
+    },
+    computed: {
+      remainFilter() {
+        let keys = Object.keys(this.params.filters);
+        let obj = {};
+        Object.keys(this.filterList).forEach(key => {
+          if (!keys.includes(key) && this.filterList[key].length > 1) {
+            obj[key] = this.filterList[key];
+          }
+        })
+        return obj;
+      }
+    }
+  })
+</script>
+</body>
+
+</html>

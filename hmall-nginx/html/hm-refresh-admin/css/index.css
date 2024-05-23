@@ -1,0 +1,93 @@
+.app-container {
+    margin: 0 2px;
+}
+/*.total-layout {
+    margin-top: 5px;
+}
+.total-frame {
+    border: 1px solid #DCDFE6;
+    padding: 10px;
+    height: 90px;
+}
+.total-icon {
+    color: #409EFF;
+    width: 60px;
+    height: 60px;
+}
+.total-title {
+    position: relative;
+    font-size: 16px;
+    color: #909399;
+    left: 70px;
+    top: -50px;
+}
+.total-value {
+    position: relative;
+    font-size: 18px;
+    color: #606266;
+    left: 70px;
+    top: -40px;
+}*/
+/*.un-handle-layout {
+    margin-top: 20px;
+    border: 1px solid #DCDFE6;
+}*/
+.layout-title {
+    color: #606266;
+    padding: 10px;
+    background: #F2F6FC;
+    font-weight: bold;
+}
+
+.un-handle-item {
+    border-bottom: 1px solid #EBEEF5;
+    padding: 10px;
+}
+.overview-layout {
+    margin-top: 10px;
+}
+.overview-item-value {
+    font-size: 24px;
+    text-align: center;
+}
+.overview-item-title {
+    text-align: center;
+}
+.out-border {
+    border: 1px solid #DCDFE6;
+}
+.statistics-layout {
+    margin-top: 20px;
+    border: 1px solid #DCDFE6;
+}
+.color-main {
+    color: #409EFF;
+}
+
+.color-success {
+    color: #67C23A;
+}
+
+.color-warning {
+    color: #E6A23C;
+}
+
+.color-danger {
+    color: #F56C6C;
+}
+
+.color-info {
+    color: #909399;
+}
+
+
+.el-dialog{
+    padding: 0 20px;
+}
+.add-btn{
+    width: 100%;
+    display: flex;
+    display: -webkit-flex; /* Safari */
+    justify-content: space-between;
+    padding: 10px;
+}

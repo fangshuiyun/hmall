@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>河马商城管理后台</title>
+  <link href="./css/main.css" rel="stylesheet">
+  <!-- 引入样式 -->
+  <link rel="stylesheet" href="./css/element.css">
+  <link rel="stylesheet" href="./css/index.css">
+  <link rel="stylesheet" href="./css/login.css">
+
+</head>
+<body>
+<div id="app">
+  <div style="display: flex; margin-top: 20px; height: 100px;">
+    <transition name="el-zoom-in-center">
+      <el-card v-show="showLogin" class="login-form-layout">
+        <el-form autoComplete="on"
+                 :model="loginForm"
+                 :rules="loginRules"
+                 ref="loginForm"
+                 label-position="left">
+          <div style="text-align: center">
+            <el-image class="logo" src="./images/1.png"></el-image>
+          </div>
+          <h2 class="login-title color-danger">河马商城管理系统</h2>
+          <el-form-item prop="username">
+            <el-input name="username"
+                      type="text"
+                      v-model="loginForm.username"
+                      autoComplete="on"
+                      placeholder="请输入用户名">
+          <span slot="prefix">
+            <i class="el-icon-user"></i>
+          </span>
+            </el-input>
+          </el-form-item>
+          <el-form-item prop="password">
+            <el-input name="password"
+                      :type="pwdType"
+                      @keyup.enter.native="handleLogin"
+                      v-model="loginForm.password"
+                      autoComplete="on"
+                      placeholder="请输入密码">
+          <span slot="prefix">
+            <i class="el-icon-lock"></i>
+          </span>
+              <span slot="suffix" @click="showPwd">
+            <i class="el-icon-view"></i>
+          </span>
+            </el-input>
+          </el-form-item>
+          <el-form-item style="margin-bottom: 60px;text-align: center">
+            <el-button style="width: 45%" plain type="primary" :loading="loading" @click.native.prevent="handleLogin">
+              登录
+            </el-button>
+            <el-button style="width: 45%" plain type="success" @click.native.prevent="showLogin=!showLogin">
+              去注册
+            </el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
+    </transition>
+    <transition name="el-zoom-in-center">
+      <el-card v-show="!showLogin" class="login-form-layout">
+        <el-form autoComplete="on"
+                 :model="registerForm"
+                 :rules="loginRules"
+                 ref="registerForm"
+                 label-position="left">
+          <div style="text-align: center">
+            <el-image class="logo" src="./images/1.png"></el-image>
+          </div>
+          <h2 class="login-title color-danger">河马商城管理系统</h2>
+          <el-form-item prop="username">
+            <el-input name="username"
+                      type="text"
+                      v-model="registerForm.username"
+                      autoComplete="on"
+                      placeholder="请输入用户名">
+          <span slot="prefix">
+            <i class="el-icon-user"></i>
+          </span>
+            </el-input>
+          </el-form-item>
+          <el-form-item prop="name">
+            <el-input name="name"
+                      v-model="registerForm.name"
+                      autoComplete="on"
+                      placeholder="请输入昵称">
+              <span slot="prefix">
+                <i class="el-icon-chat-dot-square"></i>
+              </span>
+            </el-input>
+          </el-form-item>
+          <el-form-item prop="password">
+            <el-input name="password"
+                      :type="pwdType"
+                      v-model="registerForm.password"
+                      autoComplete="on"
+                      placeholder="请输入密码">
+              <span slot="prefix">
+                <i class="el-icon-lock"></i>
+              </span>
+              <span slot="suffix" @click="showPwd">
+                <i class="el-icon-view"></i>
+              </span>
+            </el-input>
+          </el-form-item>
+
+          <el-form-item style="margin-bottom: 60px;text-align: center">
+            <el-button style="width: 45%" type="primary" :loading="loading" @click.native.prevent="handleRegister">
+              注册
+            </el-button>
+            <el-button style="width: 45%" type="success" @click.native.prevent="showLogin=!showLogin">
+              去登录
+            </el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
+    </transition>
+  </div>
+  <div>
+
+    <img :src="login_center_bg" class="login-center-layout">
+  </div>
+</div>
+<script src="./js/vue.js"></script>
+<script src="./js/axios.min.js"></script>
+<script src="./js/common.js"></script>
+<script src="./js/element.js"></script>
+
+<script>
+
+  const app = new Vue({
+    el: "#app",
+    data() {
+      const validateUsername = (rule, value, callback) => {
+        if (!value.match("^[\\w]{4,32}$")) {
+          callback(new Error('请输入正确的用户名'))
+        } else {
+          callback()
+        }
+      };
+      const validatePass = (rule, value, callback) => {
+        if (value.length < 3) {
+          callback(new Error('密码不能小于3位'))
+        } else {
+          callback()
+        }
+      };
+      return {
+        util,
+        login_center_bg: "./images/login_center_bg.png",
+        loginForm: {
+          username: '',
+          password: ''
+        },
+        registerForm: {
+          username: '',
+          password: '',
+          confirmPassword: ''
+        },
+        loginRules: {
+          username: [{required: true, trigger: 'blur', validator: validateUsername}],
+          password: [{required: true, trigger: 'blur', validator: validatePass}],
+          confirmPassword: [{
+            required: true, trigger: 'blur', validator: (r, v, c) => {
+              if (v !== this.registerForm.password) {
+                c(new Error('两次密码不一致'))
+              } else {
+                c()
+              }
+            }
+          }],
+        },
+        loading: false,
+        pwdType: 'password',
+        showLogin: true
+      }
+    },
+    created() {
+      this.loginForm.username = "Huge";
+      this.loginForm.password = "123";
+    },
+    methods: {
+      showPwd() {
+        if (this.pwdType === 'password') {
+          this.pwdType = ''
+        } else {
+          this.pwdType = 'password'
+        }
+      },
+      handleLogin() {
+        this.$refs.loginForm.validate(valid => {
+          if (valid) {
+            // 登录
+            axios.post("/users/login", this.loginForm)
+              .then(resp => {
+                let {token, ...user} = resp.data;
+                sessionStorage.setItem("token", token)
+                util.store.set("user-info", user)
+                const url = util.store.get("return-url");
+                window.location = url || '/';
+              })
+              .catch(err => this.handleLoginError(err.response.data.msg))
+          } else {
+            console.log('参数验证不合法！');
+            return false
+          }
+        })
+      },
+      handleLoginError(msg) {
+        // 登录失败，说明原因
+        this.$message({
+          message: msg,
+          type: 'error'
+        });
+      },
+      handleRegister() {
+        this.$refs.registerForm.validate(valid => {
+          if (!valid) {
+            console.log('参数验证不合法！');
+            return false
+          }
+          // 注册
+          axios.post("/user/register", this.registerForm)
+            .then(resp => {
+              // 注册成功
+              this.$message({
+                message: '注册成功，去登录吧！',
+                type: 'success'
+              });
+              // 去登录
+              this.showLogin = true;
+            })
+            .catch(err => {
+              // 注册失败，说明原因
+              this.$message({
+                message: '注册失败',
+                type: 'error'
+              });
+              console.log(err)
+            })
+        })
+      }
+    }
+  })
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+#app {
+    width: 80%;
+    margin: auto;
+    padding: 10px;
+    text-align: center;
+}
+.el-dialog{
+    padding: 0 20px;
+}
+.add-btn{
+    width: 100%;
+    display: flex;
+    display: -webkit-flex; /* Safari */
+    justify-content: space-between;
+    padding: 10px;
+}

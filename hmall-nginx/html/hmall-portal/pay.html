@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=9; IE=8; IE=7; IE=EDGE">
+  <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+  <title>支付页</title>
+  <link rel="stylesheet" type="text/css" href="./css/webbase.css"/>
+  <link rel="stylesheet" type="text/css" href="./css/pay.css"/>
+  <link rel="stylesheet" type="text/css" href="./css/pages-weixinpay.css"/>
+</head>
+
+<body>
+<!--head-->
+<div id="payApp">
+  <top></top>
+  <div class="cart py-container">
+    <!--logoArea-->
+    <div class="logoArea">
+      <a href="/">
+        <div class="logo">
+          <img src="./img/logo.png" alt="1"/>
+        </div>
+      </a>
+      <span>收银台 </span>
+    </div>
+    <!--主内容-->
+    <div class="checkout py-container  pay">
+      <div class="checkout-tit">
+        <h4 class="fl tit-txt">
+          <span class="success-icon"></span>
+          <span class="success-info">订单提交成功，订单号：{{order.id}}。请您及时付款，订单将在时间
+          <span style="color: #9d261d">{{remainTime}}</span> 后取消。</span>
+        </h4>
+        <span class="fr">
+						<em class="sui-lead">应付金额：</em>
+						<em class="orange money">￥{{util.formatPrice(order.totalFee)}}</em>元</span>
+        <div class="clearfix"></div>
+      </div>
+      <div class="checkout-steps">
+        <div class="container">
+          <div class="tab-wrapper">
+            <!--tab section 1-->
+            <div style="padding: 15px 20px 15px 20px">
+              <input type="radio" name="tab-radio" v-model="tab" :value="1" class="tab-radio" id="tab-radio-1" checked>
+              <label for="tab-radio-1" class="tab-handler tab-handler-1"
+                     :class='{"tab-selected": tab === 1}'>支付宝支付</label>
+              <!--tab section 2-->
+              <input type="radio" name="tab-radio" v-model="tab" :value="2" id="tab-radio-2" class="tab-radio">
+              <label for="tab-radio-2" class="tab-handler tab-handler-2"
+                     :class='{"tab-selected": tab === 2}'>微信支付</label>
+              <!--tab section 3-->
+              <input type="radio" name="tab-radio" v-model="tab" :value="3" id="tab-radio-3" class="tab-radio">
+              <label for="tab-radio-3" class="tab-handler tab-handler-3"
+                     :class='{"tab-selected": tab === 3}'>余额支付</label>
+            </div>
+            <div class="hr"></div>
+            <div class="tab-content" style="padding: 10px 20px" v-show="tab === 1 || tab === 2">
+              <div class="fl sao">
+                <div class="fl code">
+                  <div id="qrImage2">
+                    <img src="./img/erweima.png" alt="">
+                  </div>
+                  <div class="saosao">
+                    <p>请使用{{paymentTypes[tab - 1].label}}扫一扫</p>
+                    <p>扫描二维码支付</p>
+                  </div>
+                </div>
+                <div class="fl phone">
+
+                </div>
+
+              </div>
+            </div>
+            <div class="tab-content" v-show="tab === 3" style="padding: 10px 20px">
+
+              <label for="payPassword">请输入支付密码：</label>
+              <input id="payPassword" type="password" v-model="password">
+
+              <button @click="payByBalance">确认支付</button>
+            </div>
+          </div>
+        </div>
+        <div class="clearfix"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<script src="./js/vue.js"></script>
+<script src="./js/axios.min.js"></script>
+<script src="js/common.js"></script>
+<script src="js/top.js"></script>
+<script src="js/qrcode.min.js"></script>
+<script>
+  let app = new Vue({
+    el: "#payApp",
+    data() {
+      return {
+        util, // 工具类
+        order: {id: 458010519, totalFee: 298400, paymentType: 3}, // 订单信息
+        paymentTypes: [{value: "aliPay", label: "支付宝"}, {value: "wxPay", label: "微信"}, {value: "balance", label: "余额"}], // 支付方式
+        tab: 3, // 标签页
+        password: "", // 支付密码
+        remainTime: "",
+        user: null,
+        payOrderNo: "", // 支付单号
+      }
+    },
+    created() {
+      util.store.set("return-url", location.href);
+      this.user = util.store.get("user-info")
+      // 查询订单
+      axios.get("/orders/" + util.getUrlParam("id"))
+        .then(resp => {
+          // 查询到订单了
+          this.order = resp;
+          this.tab = this.order.paymentType;
+          // 创建支付单
+          this.createPayOrder(this.order.id);
+          // 设置倒计时
+          const deadLine = new Date(this.order.createTime).getTime() + 1800000;
+          const tid = setInterval(() => {
+            const remainTime = deadLine - new Date().getTime();
+            this.remainTime = Math.floor(remainTime / 60000) + "分" + Math.floor((remainTime % 60000) / 1000) + "秒";
+          })
+          setTimeout(() => {
+            // 清除倒计时
+            clearInterval(tid)
+            // 跳转到失败页
+            alert("支付超时！");
+          }, deadLine - new Date().getTime())
+        })
+        .catch(err => console.log(err));
+    },
+    watch: {
+      tab(val) {
+        // 创建支付单
+        this.createPayOrder(this.order.id);
+      }
+    },
+    methods: {
+      createPayOrder(id) {
+        axios.post("/pay-orders",
+          {
+            bizOrderNo: this.order.id,
+            amount: this.order.totalFee,
+            payType: this.tab === 3 ? 5 : 4,
+            orderInfo: "黑马商城商品",
+            payChannelCode: this.paymentTypes[this.tab - 1].value
+          },
+          {
+            transformResponse: data => data
+          }
+        ).then(resp => {
+            // 判断支付方式
+            if (this.tab === 3) {
+              // 余额支付，保存交易单号即可
+              this.payOrderNo = resp;
+              return;
+            }
+            // 扫描支付，生成二维码
+            new QRCode(document.getElementById("qrImage"), {
+              text: resp,
+              width: 250,
+              height: 250,
+              colorDark: "#000000",
+              colorLight: "#ffffff",
+              correctLevel: QRCode.CorrectLevel.H
+            });
+            // 开启定时任务，查询付款状态
+            const taskId = setInterval(() => {
+              this.queryOrderStatus(taskId);
+            }, 3000);
+            // 同时设置一个定时任务，5分钟后，去微信主动查询支付结果，如果依然失败，终止查询，认为付款失败
+            setTimeout(() => {
+              // 清除之前的定时任务
+              clearInterval(taskId);
+              // 主动查询支付状态
+              this.queryPayStatus();
+            }, 300000)
+          })
+          .catch(err => console.log(err));
+      },
+      queryOrderStatus(taskId) {
+        axios.get("/order/status/" + id)
+          .then(resp => {
+            let i = resp;
+            if (i === 5) {
+              // 付款失败
+              clearInterval(taskId);
+              // 跳转到付款失败页
+              alert("支付失败，请重试！")
+            } else if (i !== 1) {
+              // 付款成功
+              clearInterval(taskId);
+              // 跳转到付款成功页
+              location.href = "/paysuccess.html?orderId=" + id;
+            }
+          }).catch((e) => {
+          alert("支付状态查询失败，请刷新页面重试。");
+          clearInterval(taskId);
+        })
+      },
+      queryPayStatus() {
+        axios.get("/pay/status/" + id)
+          .then(resp => {
+            // resp是返回的状态，1代表未支付、2代表已支付、3代表支付失败、4正在支付
+            if (resp !== 2) {
+              // 未支付或者支付失败，跳转到失败页
+              alert("支付失败，请重试！")
+            }
+            // 已经支付，跳转到支付成功页面
+            location.href = "/paysuccess.html?orderId=" + id;
+          })
+          .catch(err => {
+            console.log(err)
+            alert("支付失败，请重试！")
+          })
+      },
+      payByBalance() {
+        if(!this.payOrderNo){
+          alert("交易单号为空")
+          return;
+        }
+        axios.post("/pay-orders/" + this.payOrderNo,
+          {id: this.payOrderNo, pw: this.password},{
+            transformResponse: data => data
+          })
+          .then(() => {
+            // 已经支付，跳转到支付成功页面
+            location.href = "/paysuccess.html?orderId=" + this.order.id;
+          })
+          .catch(err => {
+            console.log(err)
+            alert("支付失败，请重试！")
+          })
+      }
+    }
+  });
+</script>
+</body>
+
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=9; IE=8; IE=7; IE=EDGE">
+  <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+  <title>支付页-成功</title>
+
+
+  <link rel="stylesheet" type="text/css" href="./css/webbase.css"/>
+  <link rel="stylesheet" type="text/css" href="./css/pages-paysuccess.css"/>
+</head>
+
+<body>
+<div id="app">
+<!--head-->
+  <top></top>
+<div class="cart py-container">
+  <!--logoArea-->
+  <div class="logoArea">
+    <a href="/">
+      <div class="logo">
+        <img src="./img/logo.png" alt="1"/>
+      </div>
+    </a>
+    <span>支付结果 </span>
+  </div>
+  <!--主内容-->
+  <div class="paysuccess">
+    <div class="success">
+      <h3><img src="img/right.png" width="48" height="48">　恭喜您，支付成功啦！</h3>
+      <div class="paydetail">
+        <p>支付方式：{{paymentTypes[order.paymentType - 1]}}</p>
+        <p>支付金额：￥{{util.formatPrice(order.totalFee)}}元</p>
+        <p>预计{{sendDate}}到达</p>
+        <p class="button">
+          <a href="/myOrder.html" class="sui-btn btn-xlarge btn-danger">查看订单</a>&nbsp;&nbsp;&nbsp;&nbsp;
+          <a href="/index.html" class="sui-btn btn-xlarge ">继续购物</a>
+        </p>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+<script src="./js/vue.js"></script>
+<script src="./js/axios.min.js"></script>
+<script src="js/common.js"></script>
+<script src="js/top.js"></script>
+<script>
+  let app = new Vue({
+    el: "#app",
+    data(){
+      return {
+        order: {}, // 订单信息
+        paymentTypes: ["支付宝支付", "微信支付", "扣减余额"],
+        util,
+        user: null,
+      }
+    },
+    created(){
+      util.store.set("return-url", location.href);
+      // 查询用户
+      this.user = util.store.get("user-info");
+      if(!this.user){
+        location.href = "/login.html";
+      }
+      // 根据订单id查询订单
+      axios.get("/orders/" + util.getUrlParam("orderId"))
+        .then(resp => {
+          // 查询到订单了
+          this.order = resp;
+        })
+        .catch(err => console.log(err));
+    },
+    methods:{
+
+    },
+    computed:{
+      sendDate(){
+        if(!this.order.createTime){
+          return "";
+        }
+        let d = new Date(this.order.createTime);
+        return d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + (d.getDate() + 3)  + "日"
+      }
+    }
+  });
+</script>
+</body>
+
+</html>

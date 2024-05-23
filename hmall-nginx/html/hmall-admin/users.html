@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>用户管理</title>
+  <link href="./css/main.css" rel="stylesheet">
+  <!-- 引入样式 -->
+  <link rel="stylesheet" href="./css/element.css">
+
+
+</head>
+<body>
+<div id="app">
+  <h1>用户管理</h1>
+  <div class="add-btn" >
+    <el-button type="primary" size="small" @click="beginAdd">新增用户</el-button>
+    <el-pagination
+        v-show="total > pageSize"
+        @current-change="query"
+        :current-page="lastPage"
+        style="margin-top: 5px"
+        background
+        :page-size="pageSize"
+        :page-sizes="pageSizes"
+        @size-change="handleSizeChange"
+        layout="prev, pager, next, total, sizes"
+        :total="total">
+    </el-pagination>
+  </div>
+  <el-table
+      :data="users"
+      border
+      style="width: 100%">
+    <el-table-column
+        v-for="h in headers" :key="h.prop"
+        :prop="h.prop"
+        :label="h.text"
+        :width="h.width"
+        :align="h.align"
+        v-if="h.prop !== 'image' && h.prop !== 'spec'"
+    >
+    </el-table-column>
+    <el-table-column
+        v-else-if="h.prop === 'spec'"
+        :prop="h.prop"
+        :label="h.text"
+        :width="h.width"
+        :align="h.align"
+    >
+      <template slot-scope="scope">
+        <div v-for="(v, k) in parseJSON(scope.row.spec)">
+          {{k}} : {{v}}
+        </div>
+      </template>
+    </el-table-column>
+    <el-table-column
+        v-else
+        :prop="h.prop"
+        :label="h.text"
+        :width="h.width"
+        :align="h.align"
+    >
+      <template slot-scope="scope">
+        <el-image
+            style="width: 50px; height: 50px"
+            :src="scope.row.image"
+            fit="fill"></el-image>
+      </template>
+
+    </el-table-column>
+    <el-table-column align="center" label="操作" :width="160">
+      <template slot-scope="scope">
+        <el-button type="primary" plain icon="el-icon-edit" circle size="mini"
+                   @click="handleEdit(scope.$index, scope.row)"></el-button>
+        <el-button type="danger" plain icon="el-icon-delete" circle size="mini"
+                   @click="handleDelete(scope.$index, scope.row)"></el-button>
+        <el-tooltip class="item" v-if="scope.row.status === 2" effect="dark" content="上架" placement="top-start">
+            <el-button type="success" plain icon="el-icon-upload2"  circle size="mini"
+                   @click="handleUp(scope.row.id)"></el-button>
+        </el-tooltip>
+        <el-tooltip class="item" v-else effect="dark" content="下架" placement="top-start">
+            <el-button type="info" plain icon="el-icon-download" circle size="mini"
+                     @click="handleDown(scope.row.id)"></el-button>
+        </el-tooltip>
+
+      </template>
+    </el-table-column>
+  </el-table>
+
+  <el-dialog title="用户信息" :visible.sync="formVisible" width="30%" style="padding: 0 20px;">
+    <el-form :model="item" size="small" label-position="left" :label-width="formLabelWidth">
+      <el-form-item label="用户名" >
+        <el-input v-model="item.name" autocomplete="off"></el-input>
+      </el-form-item>
+      <el-form-item label="手机号" >
+        <el-input v-model="item.phone" autocomplete="off"></el-input>
+      </el-form-item>
+      <el-form-item label="用户角色" >
+        <el-input v-model="item.role" autocomplete="off"></el-input>
+      </el-form-item>
+    </el-form>
+    <div slot="footer" class="dialog-footer">
+      <el-button @click="formVisible = false">取 消</el-button>
+      <el-button type="primary" @click="confirmEdit">确 定</el-button>
+    </div>
+  </el-dialog>
+</div>
+<script src="./js/vue.js"></script>
+<script src="./js/axios.min.js"></script>
+<!-- 引入组件库 -->
+<script src="./js/element.js"></script>
+<script>
+  // 设置后台服务地址
+  axios.defaults.baseURL = "/api";
+  axios.defaults.timeout = 1000;
+  // request拦截器
+  axios.interceptors.request.use(
+    config => {
+      config.headers['authorization'] = 'admin'
+      return config
+    },
+    error => {
+      console.log(error)
+      Promise.reject(error)
+    }
+  )
+
+  const app = new Vue({
+    el: "#app",
+    data: {
+      pageSize: 5,
+      pageSizes: [5, 10, 20, 50, 100, 200],
+      headers: [
+        {prop: "id", text: "ID", width: 120, align: "center"},
+        {prop: "username", text: "用户名", width: 0, align: "center"},
+        {prop: "phone", text: "手机号", width: 100, align: "center"},
+        {prop: "status", text: "状态", width: 100, align: "center"},
+        {prop: "failureTimes", text: "连续登陆失败次数", width: 100, align: "center"},
+        {prop: "latestSuccessTime", text: "最近登录成功时间", width: 80, align: "center"},
+        {prop: "latestFailTime", text: "最近登录失败时间", width: 180, align: "center"},
+      ],
+      users: [],
+      total: 1000,
+      formVisible: false, // 是否显示表单
+      formLabelWidth: "100px", // 表单label宽度
+      item: {isAD: false, image: ""}, // 表单中的酒店数据
+      isEdit: false, // 是否是更新
+      lastPage: 1,// 上一次查询的页码
+    },
+    created() {
+      this.query(1);
+    },
+    watch:{
+      pageSize(){
+        this.query(1);
+      }
+    },
+    methods: {
+      handleSizeChange(s){
+        this.pageSize = s;
+      },
+      beginAdd(){
+        this.isEdit = false;
+        this.item = {};
+        this.formVisible = true;
+      },
+      query(page){
+        this.lastPage = page;
+        axios.get("/users/page", {
+            params: {
+              pageNo: page,
+              pageSize: this.pageSize,
+            }
+          })
+          .then(resp => {
+            this.users = resp.data.list;
+            this.total = parseInt(resp.data.total);
+          })
+          .catch(err => {
+            console.log(err)
+            this.users = [
+              {
+                "id": 317581,
+                "username": "Jack",
+                "phone": "13688990912",
+                "role": "用户",
+                "status": "连续失败",
+                "failureTimes": 3,
+                "latestFailTime": "2019-04-30 21:09:11",
+                "latestSuccessTime": "2019-04-30 21:10:10"
+              },
+              {
+                "id": 3175802,
+                "username": "Jack",
+                "phone": "13688990912",
+                "role": "用户",
+                "status": "连续失败",
+                "failureTimes": 5,
+                "latestFailTime": "2019-04-30 21:09:11",
+                "latestSuccessTime": "2019-04-30 21:10:10"
+              },
+              {
+                "id": 317583,
+                "username": "Hope",
+                "phone": "13688990913",
+                "role": "管理员",
+                "status": "正常",
+                "failureTimes": 0,
+                "latestFailTime": "2019-04-30 21:09:11",
+                "latestSuccessTime": "2019-05-30 12:20:10"
+              }
+            ];
+            this.total = 124;
+          });
+      },
+      handleEdit(v1, v2) {
+        if(v2.status === 1){
+          this.$message({
+            message: '上架的用户不能修改，请先下架！',
+            type: 'error'
+          });
+          return;
+        }
+        this.isEdit = true;
+        this.item = JSON.parse(JSON.stringify(v2));
+        this.formVisible = true;
+      },
+      handleDelete(v1, v2) {
+        if(v2.status === 1){
+          this.$message({
+            message: '上架的用户不能删除，请先下架！',
+            type: 'error'
+          });
+          return;
+        }
+        this.$confirm('此操作将永久删除用户信息, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          this.deleteById(v2.id);
+        }).catch(() => {
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          });
+        });
+      },
+      confirmEdit(){
+        if(this.isEdit){
+          axios.put("/users", this.item)
+            .then(resp => {
+              this.$message({
+                message: '更新成功',
+                type: 'success'
+              });
+              this.formVisible = false;
+              this.reload();
+            })
+            .catch(err => {
+              this.$message({
+                message: '更新失败',
+                type: 'error'
+              });
+              console.log(err);
+            })
+        }else{
+          axios.post("/users", this.item)
+            .then(resp => {
+              this.$message({
+                message: '新增成功',
+                type: 'success'
+              });
+              this.formVisible = false;
+              this.reload();
+            })
+            .catch(err => {
+              this.$message({
+                message: '新增失败',
+                type: 'error'
+              });
+              console.log(err);
+            })
+        }
+
+      },
+      deleteById(id){
+        axios.delete("/users/" + id)
+        .then(() => {
+          this.$message({
+            type: 'success',
+            message: '删除成功!'
+          });
+          this.reload();
+        })
+        .catch(err => {
+          this.$message({
+            type: 'error',
+            message: '删除失败!'
+          });
+          console.log(err);
+        })
+      },
+      handleUp(id){
+        this.updateStatus(id, 1);
+      },
+      handleDown(id){
+        this.updateStatus(id, 2);
+      },
+      updateStatus(id, status){
+        let action = status === 1 ? "上架" : "下架";
+
+        axios.put("/users/status/" + id + "/" + status)
+          .then(() => {
+            this.$message({
+              type: 'success',
+              message: action + '成功!'
+            });
+            this.reload();
+          })
+          .catch(err => {
+            this.$message({
+              type: 'error',
+              message: action +'失败!'
+            });
+            console.log(err);
+          })
+      },
+      reload(){
+        this.query(this.lastPage);
+      },
+      parseJSON(str){
+        return JSON.parse(str);
+      }
+    }
+  })
+</script>
+</body>
+</html>

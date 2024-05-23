@@ -1,0 +1,43 @@
+html,body{
+    height: 100%;
+    margin: 0;
+    font-size: 14px;
+    font-family: "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","微软雅黑",Arial,sans-serif;
+}
+#app {
+    height: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    display: flex;
+    display: -webkit-flex;
+}
+.banner{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    box-shadow: 1px 1px 3px #888888;
+    margin-bottom: 2px;
+    padding: 10px 20px;
+    align-items: center;
+    color: #494747
+}
+.banner .icon{
+    width: 2%;
+}
+.banner .title{
+    width: 85%;
+    font: 20px sans-serif;
+}
+.mini-box {
+    width: 20px;
+}
+.menus{
+    width: 15%;
+}
+.blocks{
+    width: 90%;
+    height: 100%;
+}
+.btn-add {
+    float: right;
+}

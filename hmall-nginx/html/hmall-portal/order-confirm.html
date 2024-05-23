@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=9; IE=8; IE=7; IE=EDGE">
+  <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+  <title>结算页</title>
+  <link rel="stylesheet" type="text/css" href="./css/webbase.css" />
+  <link rel="stylesheet" type="text/css" href="./css/pages-getOrderInfo.css" />
+  <link rel="stylesheet" type="text/css" href="./css/orderInfo.css" />
+</head>
+
+<body>
+<div id="orderApp" >
+  <!--head-->
+  <top></top>
+  <div class="cart py-container">
+    <div class="logoArea">
+      <a href="/">
+        <div class="logo">
+          <img src="./img/logo.png" alt="1"/>
+        </div>
+      </a>
+      <span>订单确认 </span>
+    </div>
+    <!--主内容-->
+    <div class="checkout py-container">
+      <div class="checkout-tit">
+        <h4 class="tit-txt">填写并核对订单信息</h4>
+      </div>
+      <div class="checkout-steps">
+        <!--收件人信息-->
+        <div class="step-tit">
+          <h5>收件人信息<span><a class="newadd">新增收货地址</a></span></h5>
+        </div>
+        <div class="step-cont">
+          <div class="addressInfo">
+            <ul class="addr-detail">
+              <li class="addr-item">
+                <div v-for="addr in addressList" :key="addr.id" @click="params.addressId = addr.id">
+                  <div :class="{con:true, name:true, selected: addr.id === params.addressId}">
+                    <a href="javascript:;">{{addr.contact}}</a>
+                  </div>
+                  <div class="con address">
+                    {{addr.contact}}{{addr.province}}{{addr.city}}{{addr.town}}{{addr.street}}
+                    <span>{{handleMobile(addr.mobile)}}</span>
+                    <span v-if="addr.isDefault" class="base">默认地址</span>
+                  </div>
+                  <div class="clearfix"></div>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="hr"></div>
+        </div>
+
+        <!--支付和送货-->
+        <div class="payshipInfo">
+
+          <div class="step-tit">
+            <h5>送货清单</h5>
+          </div>
+          <div class="step-cont">
+            <ul class="send-detail">
+              <li v-for="item in items" :key="item.id" class="sendGoods">
+                <div >
+                  <ul class="yui3-g">
+                    <li class="yui3-u-1-8">
+                      <span><img :src="item.image" width="100" height="100" /></span>
+                    </li>
+                    <li class="yui3-u-7-12">
+                      <div class="desc">{{item.name}}</div>
+                      <div class="seven">
+                        <div v-for="(v,k) in parseJson(item.spec)">
+                          <span style="color: #504f4f">{{k}}</span> : {{v}}
+                        </div>
+                      </div>
+                    </li>
+                    <li class="yui3-u-1-12">
+                      <div>&nbsp;</div>
+                      <div class="price">￥{{util.formatPrice(item.newPrice || item.price)}}</div>
+                    </li>
+                    <li class="yui3-u-1-12">
+                      <div style="width: 60px; text-align: right">
+                        <button class="num-btn" @click="incNum(item)">+</button>
+                        <div class="num">
+                          <span>×</span>&nbsp;&nbsp;&nbsp;<input style="width: 22px" type="text" v-model="item.num">
+                        </div>
+                        <button class="num-btn" @click="decNum(item)">-</button>
+                      </div>
+                    </li>
+                    <li class="yui3-u-1-12">
+                      <div class="exit">有货</div>
+                    </li>
+                  </ul>
+                </div>
+              </li>
+              <li></li>
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="order-summary">
+      <div class="static fr">
+        <div class="list">
+          <span><i class="number">{{items.length}}</i>件商品，总金额:</span>
+          <em class="allprice">¥{{totalPrice}}</em>
+        </div>
+        <div class="list">
+          <span>优惠券：</span>
+          <em class="money">0.00</em>
+        </div>
+        <div class="list">
+          <span>运费：</span>
+          <em class="transport">0.00</em>
+        </div>
+      </div>
+    </div>
+    <div class="clearfix trade">
+      <div class="fc-price">应付金额:　<span class="price">¥{{totalPrice}}</span></div>
+      <div class="fc-receiverInfo">寄送至: {{address}}</div>
+    </div>
+    <div class="submit">
+      <a class="sui-btn btn-danger btn-xlarge" href="javascript:void(0)" @click="toPay">提交订单</a>
+    </div>
+  </div>
+</div>
+  <script src="./js/vue.js"></script>
+  <script src="./js/axios.min.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/top.js"></script>
+  <script>
+    let orderApp = new Vue({
+      el: "#orderApp",
+      data() {
+        return {
+          util,
+          paymentTypes: ["支付宝支付", "微信支付", "扣减余额"],
+          addressList: [], // 地址列表
+          items: [], // 商品信息
+          params: {
+            details: [],
+            paymentType: 3, // 支付方式
+            addressId: 61, // 收货地址的id
+          },
+          user: null,
+        }
+      },
+      created() {
+        util.store.set("return-url", location.href);
+        this.user = util.store.get("user-info")
+        if(!this.user){
+          location.href = "login.html";
+        }
+        // 查询商品
+        this.getItem();
+        this.getAddress();
+      },
+      methods: {
+        getItem() {
+          this.items = util.store.get("selectedCarts");
+        },
+        getAddress() {
+          // 根据用户id查询地址列表
+          axios.get("/addresses")
+            .then(resp => {
+              if(resp && resp.length > 0){
+                this.addressList = resp
+              }else{
+                alert("当前用户没有地址，现在展示假数据")
+                this.addressList = [
+                  { "id": 61, "userId": 2, "contact": "李佳星", "mobile": "13301212233", "province": "上海", "city": "上海", "town": "浦东新区", "street": "航头镇航头路", "isDefault": true },
+                  { "id": 63, "userId": 2, "contact": "李小龙", "mobile": "13301212233", "province": "广东", "city": "佛山", "town": "永春", "street": "永春武馆", "isDefault": false },
+                ]
+              }
+            })
+            .catch(err => {
+              this.addressList = [
+                { "id": 61, "userId": 2, "contact": "李佳星", "mobile": "13301212233", "province": "上海", "city": "上海", "town": "浦东新区", "street": "航头镇航头路", "isDefault": true },
+                { "id": 63, "userId": 2, "contact": "李小龙", "mobile": "13301212233", "province": "广东", "city": "佛山", "town": "永春", "street": "永春武馆", "isDefault": false },
+              ]
+              console.log("err")
+            }
+            )
+        },
+        toPay() {
+          // 发送ajax请求到微服务执行：下单、扣库存
+          let details = [];
+          this.items.forEach(({itemId, num}) => {
+            details.push({itemId, num})
+          })
+          this.params.details = details;
+          axios.post("/orders", this.params)
+            .then(resp => {
+              // 获取订单id
+              let orderId = resp;
+              // 跳转到支付页面
+              location.href = "/pay.html?id=" + orderId
+            })
+            .catch(err => {
+              alert("下单失败，请重试！")
+              console.log(err)
+            });
+        },
+        handleMobile(mobile) {
+          return mobile.substring(0, 4) + "****" + mobile.substring(8, 11)
+        },
+        incNum(item) {
+          if (item.num < item.stock) {
+            item.num++
+          }
+        },
+        decNum(item) {
+          if (item.num > 1) {
+            item.num--
+          }
+        },
+        parseJson(str) {
+          if (!str) {
+            return "";
+          }
+          return JSON.parse(str);
+        }
+      },
+      computed: {
+        address() {
+          const address = this.addressList.find(addr => addr.id === this.params.addressId);
+          if(!address){
+            return "";
+          }
+          return address.province + address.city
+            + address.town + address.street + " 收件人："
+            + address.contact + " " + this.handleMobile(address.mobile);
+        },
+        totalPrice() {
+          let total = 0;
+          this.items.forEach(i => {
+            total += ((i.newPrice || i.price) * i.num)
+          })
+          return util.formatPrice(total);
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>
