@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: item-service   #微服务名称
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: "***"
+      config:
+        file-extension: yaml
+        shared-configs:
+          - data-id: shared-jdbc.yaml
+          - data-id: shared-log.yaml
+          - data-id: shared-swagger.yaml
+          - data-id: shared-seata.yaml
+

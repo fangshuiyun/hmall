@@ -1,0 +1,19 @@
+server:
+  port: 8082
+feign:
+  okhttp:
+    enabled: true # 开启OKHttp功能
+  sentinel:
+    enabled: true # 开启feign对sentinel的支持
+hm:
+  db:
+    database: hm-cart
+  swagger:
+    title: "黑马商场购物车服务接口文档"
+    package: com.hmall.cart.controller
+spring:
+  cloud:
+    sentinel:
+      transport:
+        dashboard: localhost:8090
+      http-method-specify: true

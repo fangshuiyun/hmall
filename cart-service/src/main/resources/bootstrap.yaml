@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: cart-service   #微服务名称
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: "*******"   # IP+端口号
+      config:
+        file-extension: yaml
+        shared-configs:
+          - data-id: shared-jdbc.yaml
+          - data-id: shared-log.yaml
+          - data-id: shared-swagger.yaml
+          - data-id: shared-seata.yaml
+
