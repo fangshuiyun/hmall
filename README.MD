@@ -24,12 +24,15 @@
 - 单一职责：一个微服务负责一部分业务功能，并且其核心数据不依赖于其它模块。<br>
 - 团队自治：每个微服务都有自己独立的开发、测试、发布、运维人员，团队人员规模不超过10人（2张披萨能喂饱）<br>
 - 服务自治：每个微服务都独立打包部署，访问自己独立的数据库。并且要做好服务隔离，避免对其它服务产生影响<br>
-
-<img src="./image/微服务.png" width="400" /><br>
+<div align=center>
+<img src="./image/微服务.png" width="500" /><br>
+</div>
 
 # 项目总体架构
 
-<img src="./image/架构图.png" width="300" />
+<div align=center>
+<img src="./image/架构图.png" width="500" />
+</div>
 
 # 重点技术总结
 
@@ -38,11 +41,18 @@ MybatisPlus:在日常开发中应该能发现，单表的CRUD功能代码重复�
 而这部分代码量往往比较大，开发起来比较费时。
 因此，目前企业中都会使用一些组件来简化或省略单表的CRUD开发工作。
 目前在国内使用较多的一个组件就是MybatisPlus。<br>
-<img src="./image/MybatisPlus.png" width="300" />
+
+<div align=center>
+<img src="./image/MybatisPlus.png" width="500" />
+</div>
+
 
 ### 定义Mapper
 为了简化单表CRUD，MybatisPlus提供了一个基础的BaseMapper接口，其中已经实现了单表的CRUD:<br>
-<img src="./image/BaseMapper.png" width="300" /><br>
+<div align=center>
+<img src="./image/BaseMapper.png" width="500" /><br>
+</div>
+
 具体代码示例：
 ```java
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
@@ -208,17 +218,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 Docker本身包含一个后台服务，我们可以利用Docker命令告诉Docker服务，
 帮助我们快速部署指定的应用。Docker服务部署应用时，首先要去搜索并下载应用对应的镜像，
 然后根据镜像创建并允许容器，应用就部署完成了。<br>
-<img src="./image/docker.png" width="300" /><br>
+<div align=center>
+<img src="./image/docker.png" width="500" /><br>
+</div>
 
 ### Docker常见命令及关系
 
-<img src="./image/docker命令.png" width="300" /><br>
+<div align=center>
+<img src="./image/docker命令.png" width="500" /><br>
+</div>
 
 ## SpringCloud
 微服务拆分以后碰到的各种问题都有对应的解决方案和微服务组件，
 而SpringCloud框架可以说是目前Java领域最全面的微服务组件的集合了。
 另外，Alibaba的微服务产品SpringCloudAlibaba目前也成为了SpringCloud组件中的一员。<br>
-<img src="./image/springcloud.png" width="300" /><br>
+<div align=center>
+<img src="./image/springcloud.png" width="500" /><br>
+</div>
 
 ## RestTemplate
 跨服务调用：Spring给我们提供了一个RestTemplate的API，可以方便的实现Http请求的发送。<br>
@@ -249,7 +265,9 @@ Java发送http请求可以使用Spring提供的RestTemplate，使用的基本步
 
 ## Nacos注册中心
 在大型微服务项目中，服务提供者的数量会非常多，为了管理这些服务就引入了注册中心的概念。注册中心、服务提供者、服务消费者三者间关系如下：<br>
-<img src="./image/nacos.png" width="300" /><br>
+<div align=center>
+<img src="./image/nacos.png" width="500" /><br>
+</div>
 流程如下：
 - 服务启动时就会注册自己的服务信息（服务名、IP、端口）到注册中心
 - 调用者可以从注册中心订阅想要的服务，获取服务对应的实例列表（1个服务可能多实例部署）
@@ -324,7 +342,10 @@ List<ItemDTO> items = itemClient.queryItemByIds(itemIds);
 - 网关可以做安全控制，也就是登录身份校验，校验通过才放行
 - 通过认证后，网关再根据请求判断应该访问哪个微服务，将请求转发过去
 
-<img src="./image/网关.png" width="300" /><br>
+<div align=center>
+<img src="./image/网关.png" width="500" /><br>
+</div>
+
 在SpringCloud当中，提供了两种网关实现方案：<br>
 - Netflix Zuul：早期实现，目前已经淘汰。<br>
 - SpringCloudGateway：基于Spring的WebFlux技术，完全支持响应式编程，吞吐能力更强。<br>
@@ -348,13 +369,20 @@ spring:
 
 
 ### 网关登录校验
-<img src="./image/网关登录校验.png" width="300" /><br>
+
+<div align=center>
+<img src="./image/网关登录校验.png" width="500" /><br>
+</div>
+
 
 #### 网关过滤器
 如图中所示，最终请求转发是有一个名为NettyRoutingFilter的过滤器来执行的，
 而且这个过滤器是整个过滤器链中顺序最靠后的一个。如果能够定义一个过滤器，
 在其中实现登录校验逻辑，并且将过滤器执行顺序定义到NettyRoutingFilter之前，这就符合需求了！
-<img src="./image/网关过滤器.png" width="300" /><br>
+<div align=center>
+<img src="./image/网关过滤器.png" width="500" /><br>
+</div>
+
 ```java
 public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
     // 1.获取Request
@@ -437,15 +465,22 @@ public RequestInterceptor userInfoRequestInterceptor(){
 
 ### 请求限流
 在簇点链路后面点击流控按钮，即可对其做限流配置：
-<img src="./image/请求限流.png" width="300" /><br>
+<div align=center>
+<img src="./image/请求限流.png" width="500" /><br>
+</div>
+
 在弹出的菜单中这样填写：<br>
-<img src="./image/流控规则.png" width="300" /><br>
+<div align=center>
+<img src="./image/流控规则.png" width="500" /><br>
+</div>
 这样就把查询购物车列表这个簇点资源的流量限制在了每秒6个，也就是最大QPS为6。<br>
 
 ### 线程隔离
 查询购物车的时候需要查询商品，为了避免因商品服务出现故障导致购物车服务级联失败，
 我们可以把购物车业务中查询商品的部分隔离起来，限制可用的线程资源：<br>
-<img src="./image/线程隔离.png" width="300" /><br>
+<div align=center>
+<img src="./image/线程隔离.png" width="500" /><br>
+</div>
 
 #### OpenFeign整合Sentinel
 ```yaml
@@ -454,11 +489,19 @@ feign:
     enabled: true # 开启feign对sentinel的支持
 ```
 点击查询商品的FeignClient对应的簇点资源后面的流控按钮：<br>
-<img src="./image/线程隔离1.png" width="300" /><br>
-<img src="./image/线程隔离2.png" width="300" /><br>
+<div align=center>
+<img src="./image/线程隔离1.png" width="500" /><br>
+</div>
+
+<div align=center>
+<img src="./image/线程隔离2.png" width="500" /><br>
+</div>
+
 注意，这里勾选的是并发线程数限制，也就是说这个查询功能最多使用5个线程，而不是5QPS。
 如果查询商品的接口每秒处理2个请求，则5个线程的实际QPS在10左右，而超出的请求自然会被拒绝。<br>
-<img src="./image/线程隔离3.png" width="300" /><br>
+<div align=center>
+<img src="./image/线程隔离3.png" width="500" /><br>
+</div>
 
 
 ## Seata-分布式事务、
@@ -467,7 +510,9 @@ feign:
 -  TM (Transaction Manager) - 事务管理器：定义全局事务的范围、开始全局事务、提交或回滚全局事务。
 -  RM (Resource Manager) - 资源管理器：管理分支事务，与TC交谈以注册分支事务和报告分支事务的状态，并驱动分支事务提交或回滚。
 
-<img src="./image/seata1.png" width="300" /><br>
+<div align=center>
+<img src="./image/seata1.png" width="500" /><br>
+</div>
 
 Seata支持四种不同的分布式事务解决方案：
 - XA
@@ -477,7 +522,11 @@ Seata支持四种不同的分布式事务解决方案：
 
 #### Seata的XA模型
 Seata对原始的XA模式做了简单的封装和改造，以适应自己的事务模型，基本架构如图：<br>
-<img src="./image/seata2.png" width="300" /><br>
+
+<div align=center>
+<img src="./image/seata2.png" width="500" /><br>
+</div>
+
 RM一阶段的工作：
 1. 注册分支事务到TC
 2. 执行分支业务sql但不提交
@@ -493,7 +542,11 @@ RM二阶段的工作：
 
 #### Seata的AT模型
 AT模式同样是分阶段提交的事务模型，不过缺弥补了XA模型中资源锁定周期过长的缺陷。<br>
-<img src="./image/seata3.png" width="300" /><br>
+
+<div align=center>
+<img src="./image/seata3.png" width="500" /><br>
+</div>
+
 阶段一RM的工作：
 - 注册分支事务
 - 记录undo-log（数据快照）
@@ -518,7 +571,11 @@ AT模式同样是分阶段提交的事务模型，不过缺弥补了XA模型中�
 
 ## RabbitMQ--异步调用
 RabbitMQ对应的架构如图：<br>
-<img src="./image/rabbitmq.png" width="300" /><br>
+
+<div align=center>
+<img src="./image/rabbitmq.png" width="500" /><br>
+</div>
+
 其中包含几个概念：
 - publisher：生产者，也就是发送消息的一方
 - consumer：消费者，也就是消费消息的一方
@@ -582,7 +639,11 @@ elasticsearch是一款非常强大的开源搜索引擎，支持的功能非常�
 - 因为词条唯一性，可以给词条创建正向索引
 
 倒排索引的搜索流程如下（以搜索"华为手机"为例），如图：<br>
-<img src="./image/倒排索引.png" width="300" /><br>
+
+<div align=center>
+<img src="./image/倒排索引.png" width="500" /><br>
+</div>
+
 流程描述：<br>
 1）用户输入条件"华为手机"进行搜索。<br>
 2）对用户输入条件分词，得到词条：华为、手机。<br>
